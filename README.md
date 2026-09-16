@@ -1,22 +1,19 @@
-# EchoNote
+# EchoNote（随身录音笔记）
 
-Android recording-notes client (Flutter) and a small Node.js API.
+Android 端录音笔记客户端（Flutter）和配套的 Node.js 接口。
 
-This commit bootstraps the repo: an empty Flutter shell, compile-time API
-base URL, and a health endpoint. Recording and transcription land in later
-commits.
+当前仓库是空客户端骨架：编译期注入 API 地址，后端只提供健康检查。录音、转写和摘要会在后续提交中加入。
 
-## Layout
+## 目录
 
 ```text
-lib/                 Flutter client
-server/src/          Express API
+lib/                 Flutter 客户端
+server/src/          Express 接口
 ```
 
-The Flutter UI must not call SQLite, files, or HTTP directly once those
-layers exist. API keys stay in `server/.env` and are never baked into the APK.
+界面层不要直接访问 SQLite、本地文件或 HTTP；这些能力落地后必须走独立分层。API 密钥只放在 `server/.env`，不要打进 APK。
 
-## Backend
+## 后端
 
 ```bash
 cd server
@@ -26,23 +23,23 @@ npm start
 npm test
 ```
 
-`GET /health` on port `3000` (override with `PORT`) should return:
+默认监听 `3000` 端口（可用 `PORT` 覆盖）。`GET /health` 应返回：
 
 ```json
 {"ok":true,"service":"echonote-server"}
 ```
 
-The process binds `0.0.0.0` so a phone on the same LAN can reach it.
+进程绑定 `0.0.0.0`，同一局域网内的手机才能访问。
 
-### Environment
+### 环境变量
 
-| Name | Purpose |
+| 名称 | 作用 |
 | --- | --- |
-| `PORT` | Listen port |
-| `ASR_PROVIDER` | Speech-to-text vendor; unused until transcription is added |
-| `LLM_PROVIDER` | Summary vendor; unused until summarization is added |
+| `PORT` | 监听端口 |
+| `ASR_PROVIDER` | 语音转写供应商；接入转写前不会使用 |
+| `LLM_PROVIDER` | 摘要供应商；接入摘要前不会使用 |
 
-## Client
+## 客户端
 
 ```bash
 flutter pub get
@@ -50,10 +47,8 @@ flutter test
 flutter run --dart-define=API_BASE_URL=http://192.168.x.x:3000
 ```
 
-`10.0.2.2` is the Android emulator alias for the host. A physical device
-must use the machine LAN IP or an HTTPS deployment. Debug builds allow
-cleartext HTTP; release builds should use HTTPS.
+`10.0.2.2` 是 Android 模拟器访问宿主机的地址。真机必须使用电脑的局域网 IP，或已部署的 HTTPS 地址。Debug 包允许明文 HTTP；Release 应使用 HTTPS。
 
-## License keys and signing
+## 密钥与签名
 
-Do not commit `server/.env`, `android/key.properties`, or keystore files.
+不要提交 `server/.env`、`android/key.properties` 和 keystore 文件。
