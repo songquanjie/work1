@@ -2,7 +2,7 @@
 
 Android 端录音笔记客户端（Flutter）和配套的 Node.js 接口。
 
-当前仓库是空客户端骨架：编译期注入 API 地址，后端只提供健康检查。录音、转写和摘要会在后续提交中加入。
+当前版本支持本地录音、列表、试听和删除。上传、转写和摘要会在后续提交中加入。本阶段不调用后端。
 
 ## 目录
 
@@ -11,9 +11,29 @@ lib/                 Flutter 客户端
 server/src/          Express 接口
 ```
 
-界面层不要直接访问 SQLite、本地文件或 HTTP；这些能力落地后必须走独立分层。API 密钥只放在 `server/.env`，不要打进 APK。
+界面层不要直接访问 SQLite、本地文件或 HTTP。录音文件由 `RecordingFileStore` 落盘，元数据由 `RecordingRepository` 写入 SQLite，所以杀进程后列表还在。API 密钥只放在 `server/.env`，不要打进 APK。
+
+## 客户端
+
+```bash
+flutter pub get
+flutter test
+flutter run
+```
+
+真机需要麦克风权限。首页是录音列表，右下角「新建录音」。
+
+操作：开始 / 暂停 / 继续 / 停止。暂停时计时停止。停止后回到列表，可播放或删除。扩展名以真机实际产出为准，不要假设一定是 `.m4a`。
+
+App 进入后台时会自动停止并尝试保存，不支持后台持续录音。
+
+连点开始不会开出两段录音：异步操作完成前按钮不可用，而不是靠短时间防抖。
+
+本阶段不需要 `--dart-define=API_BASE_URL`。Debug 包仍允许明文 HTTP，供后续上传使用。
 
 ## 后端
+
+本阶段可以不启动。接口仍只有健康检查：
 
 ```bash
 cd server
@@ -38,16 +58,6 @@ npm test
 | `PORT` | 监听端口 |
 | `ASR_PROVIDER` | 语音转写供应商；接入转写前不会使用 |
 | `LLM_PROVIDER` | 摘要供应商；接入摘要前不会使用 |
-
-## 客户端
-
-```bash
-flutter pub get
-flutter test
-flutter run --dart-define=API_BASE_URL=http://192.168.x.x:3000
-```
-
-`10.0.2.2` 是 Android 模拟器访问宿主机的地址。真机必须使用电脑的局域网 IP，或已部署的 HTTPS 地址。Debug 包允许明文 HTTP；Release 应使用 HTTPS。
 
 ## 密钥与签名
 
