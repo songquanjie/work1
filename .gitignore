@@ -1,0 +1,52 @@
+# Flutter
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+.packages
+.pub-cache/
+.pub/
+build/
+coverage/
+*.iml
+*.ipr
+*.iws
+.idea/
+.vscode/
+*.freezed.dart
+*.g.dart
+
+# Android
+android/local.properties
+android/.gradle/
+android/app/release/
+android/key.properties
+*.jks
+*.keystore
+**/captures/
+
+# iOS / macOS (not in P0 scope)
+**/Flutter/ephemeral/
+**/Pods/
+**/.symlinks/
+
+# Node
+server/node_modules/
+server/.env
+server/data/*.sqlite
+server/data/*.sqlite-journal
+server/data/audio/
+server/data/tmp/
+
+# Secrets and local tooling
+.env
+**/.env
+!.env.example
+!server/.env.example
+key.properties
+*.pem
+
+# Misc
+.DS_Store
+Thumbs.db
+exam.pdf
+*.log

@@ -1,0 +1,19 @@
+{
+  "name": "echonote-server",
+  "version": "1.0.0",
+  "private": true,
+  "description": "EchoNote HTTP API",
+  "main": "src/index.js",
+  "scripts": {
+    "start": "node src/index.js",
+    "test": "node --test test/health.test.js"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.7",
+    "express": "^4.21.2"
+  }
+}
