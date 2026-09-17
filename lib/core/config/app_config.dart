@@ -1,8 +1,7 @@
-/// Compile-time backend address.
+/// 编译期注入的后端地址。
 ///
-/// Injected with `--dart-define=API_BASE_URL=...` so a release APK never
-/// hard-codes a developer machine. The emulator default is not valid on a
-/// physical device.
+/// 用 `--dart-define=API_BASE_URL=...` 打进 APK，避免写死开发机 IP。
+/// 默认 `10.0.2.2` 只给模拟器访问电脑，真机必须改成局域网或公网地址。
 class AppConfig {
   const AppConfig._();
 

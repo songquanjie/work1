@@ -99,6 +99,57 @@ test("GET does not start transcription", async () => {
   });
 });
 
+test("POST same clientRecordingId restarts a failed task", async () => {
+  let asrCalls = 0;
+  const app = createApp({
+    dataDir: tempDataDir(),
+    markInterrupted: false,
+    asrProvider: {
+      transcribe: async () => {
+        asrCalls += 1;
+        if (asrCalls === 1) {
+          throw new ProviderError("ASR_FAILED", "转写失败，请重试");
+        }
+        return { text: "全文" };
+      },
+    },
+    summaryProvider: {
+      summarize: async () => ({ text: "摘要" }),
+    },
+  });
+
+  await withServer(app, async (base) => {
+    const first = await (
+      await fetch(`${base}/api/transcriptions`, {
+        method: "POST",
+        body: audioForm("rec-restart"),
+      })
+    ).json();
+    await app.locals.pipeline.wait(first.id);
+    const failed = await (
+      await fetch(`${base}/api/transcriptions/${first.id}`)
+    ).json();
+    assert.equal(failed.status, "failed");
+
+    const second = await fetch(`${base}/api/transcriptions`, {
+      method: "POST",
+      body: audioForm("rec-restart"),
+    });
+    assert.equal(second.status, 200);
+    const revived = await second.json();
+    assert.equal(revived.id, first.id);
+    assert.equal(revived.status, "queued");
+    await app.locals.pipeline.wait(first.id);
+    const done = await (
+      await fetch(`${base}/api/transcriptions/${first.id}`)
+    ).json();
+    assert.equal(done.status, "completed");
+    assert.equal(done.transcript, "全文");
+    assert.equal(done.summary, "摘要");
+    assert.equal(asrCalls, 2);
+  });
+});
+
 test("none provider fails without fake transcript and can retry", async () => {
   const app = createApp({
     dataDir: tempDataDir(),

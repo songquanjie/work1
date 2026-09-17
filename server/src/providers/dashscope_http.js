@@ -1,5 +1,7 @@
 "use strict";
 
+/** DashScope 原生 HTTP：北京域名 + Bearer Key。ASR 和摘要共用这一套。 */
+
 function joinUrl(baseUrl, suffix) {
   const root = String(baseUrl || "").replace(/\/+$/, "");
   const path = suffix.startsWith("/") ? suffix : `/${suffix}`;
@@ -27,6 +29,7 @@ function readContentText(content) {
     .trim();
 }
 
+/** ASR 返回 content[].text，摘要返回 message.content 字符串，这里兼容两种。 */
 function parseDashscopeText(payload) {
   if (!payload || typeof payload !== "object") {
     return "";

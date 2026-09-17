@@ -12,6 +12,7 @@ const NOT_CONFIGURED = new ProviderError(
   "未配置摘要服务",
 );
 
+/** 转写成功后自动调用。模型默认 qwen-plus，走文本生成而不是多模态接口。 */
 function createSummaryProvider(options = {}) {
   const name = String(options.name || "none").toLowerCase();
   const apiKey = String(options.apiKey || "").trim();

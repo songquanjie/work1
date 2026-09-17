@@ -15,6 +15,7 @@ const NOT_CONFIGURED = new ProviderError(
   "未配置转写服务",
 );
 
+/** 百炼同步 ASR：把本地音频编成 Base64 Data URL，不走 OSS / Filetrans。 */
 function createAsrProvider(options = {}) {
   const name = String(options.name || "none").toLowerCase();
   const apiKey = String(options.apiKey || "").trim();
@@ -37,6 +38,7 @@ function createAsrProvider(options = {}) {
 
       const bytes = await fs.readFile(audioPath);
       const mime = audioMime(audioPath) || "audio/mp4";
+      // 官方同步接口三种输入里，内网文件只能用 Base64 Data URL。
       const dataUri = `data:${mime};base64,${bytes.toString("base64")}`;
       let result;
       try {

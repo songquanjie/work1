@@ -7,6 +7,7 @@ import '../../core/utils/time_format.dart';
 import 'recorder_controller.dart';
 import 'recorder_state.dart';
 
+/// 录音页：开始 / 暂停 / 继续 / 停止。返回时若还在录会先停止保存。
 class RecorderPage extends StatelessWidget {
   const RecorderPage({
     super.key,

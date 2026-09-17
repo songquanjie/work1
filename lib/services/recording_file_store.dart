@@ -16,8 +16,7 @@ class SavedRecording {
   final DateTime savedAt;
 }
 
-/// Copies then deletes the recorder temp file. A rename can fail while the
-/// encoder still has the path open; copy leaves a complete destination first.
+/// 先 copy 再删临时文件。录音器 stop 后编码器可能还占着原路径，rename 会失败。
 class RecordingFileStore {
   Future<SavedRecording> persistStoppedFile({
     required String tempPath,
@@ -33,7 +32,7 @@ class RecordingFileStore {
       try {
         await tempFile.delete();
       } catch (_) {
-        // Final file is what the list points at; leftover tmp is harmless.
+        // 列表已经指向正式文件，残留 tmp 不影响播放。
       }
     }
     return SavedRecording(

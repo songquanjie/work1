@@ -10,6 +10,7 @@ void main() {
       localPath: '/data/recording_1.m4a',
       durationMs: 1500,
       createdAt: DateTime(2026, 9, 16, 14, 30),
+      updatedAt: DateTime(2026, 9, 16, 14, 30),
     );
     final Recording restored = Recording.fromMap(original.toMap());
     expect(restored.id, original.id);
@@ -18,6 +19,7 @@ void main() {
     expect(restored.localPath, original.localPath);
     expect(restored.durationMs, original.durationMs);
     expect(restored.createdAt, original.createdAt);
+    expect(restored.status, original.status);
     expect(restored.canPlay, isTrue);
   });
 }

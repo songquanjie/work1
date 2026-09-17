@@ -8,6 +8,7 @@ import '../../repositories/recording_repository.dart';
 import '../../services/recorder_service.dart';
 import 'recorder_state.dart';
 
+/// 录音页用例：权限、开始/暂停/继续/停止。不直接写 SQLite。
 class RecorderController extends ChangeNotifier with WidgetsBindingObserver {
   RecorderController({
     required RecorderService recorder,
@@ -32,7 +33,7 @@ class RecorderController extends ChangeNotifier with WidgetsBindingObserver {
   Duration _accumulated = Duration.zero;
   StreamSubscription<double>? _ampSub;
 
-  /// True while a recorder call is in flight. Prevents starting two sessions.
+  /// 异步录音调用进行中。用来防连点开出两段录音，不是时间防抖。
   bool get busy => _busy || RecorderUiPolicy.buttonsLocked(state);
 
   Future<void> start() async {
@@ -167,8 +168,7 @@ class RecorderController extends ChangeNotifier with WidgetsBindingObserver {
     }
   }
 
-  /// P0 does not keep capturing in the background. [inactive] is ignored
-  /// because permission sheets also emit it.
+  /// P0 不做后台持续录音。permission 弹窗也会发 inactive，所以只处理 paused/hidden。
   @override
   void didChangeAppLifecycleState(AppLifecycleState lifecycle) {
     if (lifecycle != AppLifecycleState.paused &&

@@ -1,5 +1,6 @@
 "use strict";
 
+/** 业务错误。HttpError 带状态码给路由；ProviderError 给 ASR/LLM 管线。 */
 class HttpError extends Error {
   constructor(status, code, message) {
     super(message);

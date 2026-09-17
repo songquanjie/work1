@@ -5,13 +5,16 @@ import 'package:provider/provider.dart';
 
 import '../../core/errors/app_error.dart';
 import '../../core/utils/time_format.dart';
+import '../../models/processing_status.dart';
 import '../../models/recording.dart';
 import '../../repositories/recording_repository.dart';
 import '../../services/playback_policy.dart';
 import '../../services/player_service.dart';
 import '../recorder/recorder_controller.dart';
 import '../recorder/recorder_page.dart';
+import '../recording_detail/recording_detail_page.dart';
 
+/// 首页：列表、播放、上传入口。点一行进详情。
 class RecordingListPage extends StatelessWidget {
   const RecordingListPage({super.key});
 
@@ -41,6 +44,14 @@ class RecordingListPage extends StatelessWidget {
     await _guard(
       context,
       () => context.read<RecordingRepository>().delete(recording.id),
+    );
+  }
+
+  void _openDetail(BuildContext context, String id) {
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => RecordingDetailPage(recordingId: id),
+      ),
     );
   }
 
@@ -119,7 +130,24 @@ class RecordingListPage extends StatelessWidget {
                         ),
                       ),
                       onSeek: (Duration value) => unawaited(player.seek(value)),
-                      onDelete: () => _confirmDelete(context, item),
+                      onDelete: canDeleteRecording(item.status)
+                          ? () => _confirmDelete(context, item)
+                          : null,
+                      onUpload: canUploadRecording(
+                                item.status,
+                                failedStage: item.failedStage,
+                              ) &&
+                              !item.fileMissing
+                          ? () => unawaited(
+                                _guard(
+                                  context,
+                                  () => context
+                                      .read<RecordingRepository>()
+                                      .upload(item.id),
+                                ),
+                              )
+                          : null,
+                      onOpenDetail: () => _openDetail(context, item.id),
                     );
                   },
                 ),
@@ -143,7 +171,9 @@ class RecordingListTile extends StatelessWidget {
     required this.onPlayPause,
     required this.onReplay,
     required this.onSeek,
-    required this.onDelete,
+    this.onDelete,
+    this.onUpload,
+    this.onOpenDetail,
   });
 
   final Recording recording;
@@ -154,7 +184,9 @@ class RecordingListTile extends StatelessWidget {
   final VoidCallback onPlayPause;
   final VoidCallback onReplay;
   final ValueChanged<Duration> onSeek;
-  final VoidCallback onDelete;
+  final VoidCallback? onDelete;
+  final VoidCallback? onUpload;
+  final VoidCallback? onOpenDetail;
 
   @override
   Widget build(BuildContext context) {
@@ -170,11 +202,18 @@ class RecordingListTile extends StatelessWidget {
         children: <Widget>[
           ListTile(
             key: Key('recording_${recording.id}'),
-            title: Text(recording.name),
-            subtitle: Text(
-              '${formatDurationMs(recording.durationMs)}  ·  ${formatCreatedAt(recording.createdAt)}'
-              '${recording.fileMissing ? '  ·  文件缺失' : ''}',
+            title: Text(
+              recording.name,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
             ),
+            subtitle: Text(
+              '${formatDurationMs(recording.durationMs)}  ·  ${formatCreatedAt(recording.createdAt)}  ·  ${recording.statusLabel}'
+              '${recording.fileMissing ? '  ·  文件缺失' : ''}',
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+            ),
+            onTap: onOpenDetail,
             leading: IconButton(
               tooltip: label,
               onPressed: recording.canPlay ? onPlayPause : null,
@@ -184,20 +223,28 @@ class RecordingListTile extends StatelessWidget {
                     : Icons.play_arrow,
               ),
             ),
-            trailing: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: <Widget>[
-                IconButton(
-                  tooltip: '重新播放',
-                  onPressed: recording.canPlay ? onReplay : null,
-                  icon: const Icon(Icons.replay),
-                ),
-                IconButton(
-                  tooltip: '删除',
-                  onPressed: onDelete,
-                  icon: const Icon(Icons.delete_outline),
-                ),
-              ],
+            trailing: FittedBox(
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: <Widget>[
+                  if (onUpload != null)
+                    IconButton(
+                      tooltip: '上传',
+                      onPressed: onUpload,
+                      icon: const Icon(Icons.cloud_upload_outlined),
+                    ),
+                  IconButton(
+                    tooltip: '重新播放',
+                    onPressed: recording.canPlay ? onReplay : null,
+                    icon: const Icon(Icons.replay),
+                  ),
+                  IconButton(
+                    tooltip: '删除',
+                    onPressed: onDelete,
+                    icon: const Icon(Icons.delete_outline),
+                  ),
+                ],
+              ),
             ),
           ),
           if (isCurrent)

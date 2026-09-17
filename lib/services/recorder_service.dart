@@ -10,7 +10,7 @@ import '../core/errors/app_error.dart';
 
 enum MicPermissionResult { granted, denied, permanentlyDenied }
 
-/// Microphone capture only. Persistence and UI live elsewhere.
+/// 只负责麦克风采集。落盘和列表由 Repository 处理，页面不要直接调这里。
 class RecorderService {
   RecorderService({AudioRecorder? recorder})
       : _recorder = recorder ?? AudioRecorder();
@@ -56,7 +56,7 @@ class RecorderService {
     if (!await recDir.exists()) {
       await recDir.create(recursive: true);
     }
-    // aacLc typically lands as .m4a; stop() returns the real path and wins.
+    // 小米上 stop 后编码器可能还占着临时文件，copy 再删比 rename 稳。
     final String tempPath = p.join(
       recDir.path,
       'tmp_${DateTime.now().millisecondsSinceEpoch}.m4a',

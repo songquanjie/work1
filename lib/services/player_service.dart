@@ -11,6 +11,7 @@ abstract class RecordingPlayback {
   Future<void> stopIfPlaying(String id);
 }
 
+/// 同一时刻只播一条。删除前必须先 stopIfPlaying，避免文件被占用删不掉。
 class PlayerService extends ChangeNotifier implements RecordingPlayback {
   PlayerService({AudioPlayer? player}) : _player = player ?? AudioPlayer() {
     _stateSub = _player.playerStateStream.listen(_onPlayerState);
@@ -40,7 +41,7 @@ class PlayerService extends ChangeNotifier implements RecordingPlayback {
   StreamSubscription<Duration?>? _durationSub;
   StreamSubscription<Duration>? _positionSub;
 
-  /// Bumped to cancel an in-flight start after the user hits pause/stop.
+  /// 每次新的播放动作加一，用来作废还在 await play() 的旧调用。
   int _generation = 0;
   bool _suppressCompleted = false;
   bool _disposed = false;

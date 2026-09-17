@@ -13,6 +13,9 @@ class _MemoryStore implements RecordingStore {
   Future<void> insert(Recording recording) async {}
 
   @override
+  Future<void> update(Recording recording) async {}
+
+  @override
   Future<void> delete(String id) async {}
 
   @override

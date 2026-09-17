@@ -12,10 +12,8 @@ enum PlaybackAction {
   replay,
 }
 
-/// Decides what the primary control does.
-///
-/// just_audio's play() future stays pending until pause/stop/complete, so the
-/// UI must switch to [PlaybackAction.pause] as soon as status is playing.
+/// 主按钮该做什么。just_audio 的 play() 要等到暂停/播完才返回，
+/// 所以一进入 playing 就要立刻把按钮切成「暂停」，不能等 Future 结束。
 class PlaybackPolicy {
   static bool canPause(PlaybackStatus status) =>
       status == PlaybackStatus.playing;

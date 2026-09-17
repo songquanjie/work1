@@ -10,7 +10,7 @@ if (!Number.isInteger(port) || port <= 0) {
   throw new Error(`Invalid PORT: ${process.env.PORT}`);
 }
 
-// Bind all interfaces so a physical phone on LAN can reach this process.
+// 绑 0.0.0.0，同一局域网的手机才能访问，不只是本机 127.0.0.1。
 const app = createApp();
 app.listen(port, "0.0.0.0", () => {
   process.stdout.write(`EchoNote server listening on 0.0.0.0:${port}\n`);

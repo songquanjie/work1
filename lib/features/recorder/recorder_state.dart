@@ -6,7 +6,7 @@ enum RecorderState {
   saveFailed,
 }
 
-/// Button enablement. Async work must also set a busy flag; this is not a debounce.
+/// 按钮能否点。真正防连点还要看 Controller 的 busy，这里只管录音状态。
 class RecorderUiPolicy {
   static bool canStart(RecorderState state) =>
       state == RecorderState.idle || state == RecorderState.saveFailed;

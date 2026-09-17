@@ -2,7 +2,7 @@
 
 const path = require("node:path");
 
-// qwen3-asr-flash caps encoded audio at 10MB; Base64 grows ~4/3.
+// qwen3-asr-flash 编码后上限约 10MB，Base64 膨胀约 4/3，所以原始文件要更小。
 const MAX_AUDIO_BYTES = Math.floor((10 * 1024 * 1024 * 3) / 4);
 const MAX_CLIENT_RECORDING_ID_LENGTH = 128;
 

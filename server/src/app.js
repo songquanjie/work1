@@ -12,6 +12,7 @@ const { createSummaryProvider } = require("./providers/summary_provider");
 const { TranscriptionPipeline } = require("./services/transcription_pipeline");
 const { createTranscriptionRouter } = require("./routes/transcriptions");
 
+/** 供应商只从环境变量读。none 时任务失败并给出可读原因，绝不编造全文。 */
 function providersFromEnv(env = process.env) {
   return {
     asrProvider: createAsrProvider({
@@ -29,6 +30,7 @@ function providersFromEnv(env = process.env) {
   };
 }
 
+/** 组装 Express 应用。测试可注入 repository / provider，避免打真实百炼。 */
 function createApp(options = {}) {
   const dataDir = options.dataDir || path.join(__dirname, "..", "data");
   const dbPath = options.dbPath || path.join(dataDir, "echonote.sqlite");
@@ -48,6 +50,7 @@ function createApp(options = {}) {
       summaryProvider,
     });
 
+  // 进程内执行器重启后，内存里的进行中任务已经没了，落库改成可重试失败。
   if (options.markInterrupted !== false) {
     repository.markInterrupted(Date.now());
   }

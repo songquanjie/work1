@@ -23,6 +23,7 @@ CREATE TABLE IF NOT EXISTS transcription_tasks (
 );
 `;
 
+/** 服务端任务表。client_recording_id 唯一，保证同一条录音不会建两个转写任务。 */
 class TaskRepository {
   constructor(dbPath) {
     if (dbPath !== ":memory:") {
@@ -117,6 +118,7 @@ class TaskRepository {
     return this.findById(id);
   }
 
+  /** 启动时把 queued/transcribing/summarizing 标失败，避免永远停在处理中。 */
   markInterrupted(now) {
     this.db
       .prepare(

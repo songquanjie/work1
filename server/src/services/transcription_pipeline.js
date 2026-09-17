@@ -3,6 +3,7 @@
 const { ProviderError } = require("../errors");
 const { logWarn } = require("../log");
 
+/** 转写完成后自动调 LLM 摘要。同一 taskId 同时只跑一条，防止 retry 叠加。 */
 class TranscriptionPipeline {
   constructor({ repository, asrProvider, summaryProvider }) {
     this.repository = repository;
@@ -46,6 +47,7 @@ class TranscriptionPipeline {
       return;
     }
 
+    // 摘要失败重试时跳过 ASR，避免重复转写。
     const skipAsr =
       current.failedStage === "summarizing" &&
       typeof current.transcript === "string" &&

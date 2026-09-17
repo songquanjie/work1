@@ -8,6 +8,7 @@ import 'features/recording_list/recording_list_page.dart';
 import 'repositories/recording_repository.dart';
 import 'services/player_service.dart';
 
+/// 根组件：注入仓库/播放器，并按前后台启停轮询。
 class EchoNoteApp extends StatefulWidget {
   const EchoNoteApp({
     super.key,
@@ -29,6 +30,12 @@ class _EchoNoteAppState extends State<EchoNoteApp> with WidgetsBindingObserver {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    // 前台才轮询，避免后台一直打转写查询。
+    widget.repository.poller?.start();
+    final Future<void>? firstRefresh = widget.repository.poller?.refresh();
+    if (firstRefresh != null) {
+      unawaited(firstRefresh);
+    }
   }
 
   @override
@@ -36,6 +43,13 @@ class _EchoNoteAppState extends State<EchoNoteApp> with WidgetsBindingObserver {
     if (state == AppLifecycleState.paused ||
         state == AppLifecycleState.hidden) {
       unawaited(widget.player.pauseCurrent());
+      widget.repository.poller?.stop();
+    } else if (state == AppLifecycleState.resumed) {
+      widget.repository.poller?.start();
+      final Future<void>? refresh = widget.repository.poller?.refresh();
+      if (refresh != null) {
+        unawaited(refresh);
+      }
     }
   }
 
