@@ -2,7 +2,7 @@
 
 Android 端录音笔记客户端（Flutter）和配套的 Node.js 接口。
 
-当前版本支持本地录音、列表、试听和删除。上传、转写和摘要会在后续提交中加入。本阶段不调用后端。
+当前版本：App 支持本地录音、列表、试听和删除。后端已提供上传转写任务接口；App 尚未接入上传、轮询和详情（下一阶段）。
 
 ## 目录
 
@@ -29,11 +29,9 @@ App 进入后台时会自动停止并尝试保存，不支持后台持续录音�
 
 连点开始不会开出两段录音：异步操作完成前按钮不可用，而不是靠短时间防抖。
 
-本阶段不需要 `--dart-define=API_BASE_URL`。Debug 包仍允许明文 HTTP，供后续上传使用。
+本阶段 App 不需要 `--dart-define=API_BASE_URL`。Debug 包仍允许明文 HTTP，供后续上传使用。
 
 ## 后端
-
-本阶段可以不启动。接口仍只有健康检查：
 
 ```bash
 cd server
@@ -43,21 +41,37 @@ npm start
 npm test
 ```
 
-默认监听 `3000` 端口（可用 `PORT` 覆盖）。`GET /health` 应返回：
+默认监听 `3000` 端口（可用 `PORT` 覆盖）。进程绑定 `0.0.0.0`，同一局域网内的手机才能访问。不要对同一份 `server/data/echonote.sqlite` 同时启动两个进程。
+
+`GET /health` 应返回：
 
 ```json
 {"ok":true,"service":"echonote-server"}
 ```
 
-进程绑定 `0.0.0.0`，同一局域网内的手机才能访问。
+转写任务：
+
+| 方法 | 路径 | 说明 |
+| --- | --- | --- |
+| `POST` | `/api/transcriptions` | `clientRecordingId` + 音频文件；同一 id 返回已有任务 |
+| `GET` | `/api/transcriptions/:id` | 只读查询，不会触发转写 |
+| `POST` | `/api/transcriptions/:id/retry` | 只重跑失败阶段 |
+
+上传为 multipart，音频按原始文件落盘。后端调用百炼时再编成 Base64。同步模型 `qwen3-asr-flash` 约 5 分钟 / 编码后 10MB；任务音频文件暂不自动清理。
+
+`ASR_PROVIDER=none`（默认）时任务失败并返回「未配置转写服务」，不会编造全文。真转写把 `server/.env` 里的 `ASR_PROVIDER` / `LLM_PROVIDER` 改为 `dashscope`。
 
 ### 环境变量
 
 | 名称 | 作用 |
 | --- | --- |
 | `PORT` | 监听端口 |
-| `ASR_PROVIDER` | 语音转写供应商；接入转写前不会使用 |
-| `LLM_PROVIDER` | 摘要供应商；接入摘要前不会使用 |
+| `ASR_PROVIDER` | `none` 或 `dashscope` |
+| `LLM_PROVIDER` | `none` 或 `dashscope` |
+| `DASHSCOPE_API_KEY` | 百炼北京地域 Key，不要提交 |
+| `DASHSCOPE_BASE_URL` | 默认 `https://dashscope.aliyuncs.com/api/v1` |
+| `DASHSCOPE_ASR_MODEL` | 默认 `qwen3-asr-flash` |
+| `DASHSCOPE_LLM_MODEL` | 默认 `qwen-plus` |
 
 ## 密钥与签名
 

@@ -4,6 +4,7 @@ const http = require("node:http");
 const assert = require("node:assert/strict");
 const { test } = require("node:test");
 const { createApp } = require("../src/app");
+const { tempDataDir } = require("./helpers");
 
 function listen(server) {
   return new Promise((resolve) => {
@@ -12,7 +13,13 @@ function listen(server) {
 }
 
 test("GET /health returns 200", async () => {
-  const server = http.createServer(createApp());
+  const app = createApp({
+    dataDir: tempDataDir(),
+    markInterrupted: false,
+    asrProvider: { transcribe: async () => ({ text: "unused" }) },
+    summaryProvider: { summarize: async () => ({ text: "unused" }) },
+  });
+  const server = http.createServer(app);
   const port = await listen(server);
   try {
     const res = await fetch(`http://127.0.0.1:${port}/health`);
@@ -22,5 +29,6 @@ test("GET /health returns 200", async () => {
     assert.equal(body.service, "echonote-server");
   } finally {
     server.close();
+    app.locals.repository.close();
   }
 });
