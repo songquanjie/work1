@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import 'features/ble/ble_controller.dart';
 import 'features/recorder/recorder_controller.dart';
 import 'repositories/recording_repository.dart';
 import 'services/player_service.dart';
@@ -18,6 +19,7 @@ class EchoNoteApp extends StatefulWidget {
     required this.repository,
     required this.player,
     required this.recorderController,
+    required this.bleController,
     required this.child,
     this.pollingEnabled = true,
   });
@@ -25,6 +27,7 @@ class EchoNoteApp extends StatefulWidget {
   final RecordingRepository repository;
   final PlayerService player;
   final RecorderController recorderController;
+  final BleController bleController;
   final Widget child;
   final bool pollingEnabled;
 
@@ -63,6 +66,7 @@ class _EchoNoteAppState extends State<EchoNoteApp> with WidgetsBindingObserver {
     if (state == AppLifecycleState.paused ||
         state == AppLifecycleState.hidden) {
       unawaited(widget.player.pauseCurrent());
+      unawaited(widget.bleController.stopScan());
       widget.repository.poller?.stop();
     } else if (state == AppLifecycleState.resumed) {
       widget.repository.poller?.start();
@@ -90,6 +94,9 @@ class _EchoNoteAppState extends State<EchoNoteApp> with WidgetsBindingObserver {
         ChangeNotifierProvider<PlayerService>.value(value: widget.player),
         ChangeNotifierProvider<RecorderController>.value(
           value: widget.recorderController,
+        ),
+        ChangeNotifierProvider<BleController>.value(
+          value: widget.bleController,
         ),
       ],
       child: widget.child,

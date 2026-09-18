@@ -2,7 +2,7 @@
 
 Android 录音笔记：本地录音、列表试听，上传到后端后完成语音转写和智能摘要。
 
-当前 App 版本 **1.5.10+15**。API 密钥只放在已部署的服务端，不会打进 APK。
+当前 App 版本 **1.6.2+18**。API 密钥只放在已部署的服务端，不会打进 APK。
 
 ## 运行方式
 
@@ -19,7 +19,6 @@ flutter build apk --debug --split-per-abi
 
 安装 `build/app/outputs/flutter-apk/app-arm64-v8a-debug.apk`。当前后端为 HTTP，请使用 debug 包。手机能上网即可，无需与电脑同一 Wi-Fi。
 
-
 本地自建后端时：`cd server && cp .env.example .env && npm install && npm start`，打包增加 `--dart-define=API_BASE_URL=http://本机WLAN的IP:3000`，且手机需与电脑同一局域网。
 
 ## 功能
@@ -30,8 +29,9 @@ flutter build apk --debug --split-per-abi
 - 详情：试听、重命名、转写全文和智能摘要（可分别复制）；失败可重试
 - 启动：白屏等待数据库打开后再进列表
 - 杀进程后列表、全文和摘要仍在；未完成任务回到前台会继续查询
+- 设备：底栏第二页扫描附近蓝牙设备，显示名称和信号强度，点进去连接并列出 GATT 服务
 
-不包含登录、多端同步、iOS、后台持续录音、BLE、边录边转。
+不包含登录、多端同步、iOS、后台持续录音、边录边转。
 
 ## 技术栈
 
@@ -41,6 +41,7 @@ flutter build apk --debug --split-per-abi
 | 录音 / 播放 | `record`、`just_audio` |
 | 本地数据 | `sqflite` + 应用文档目录中的音频文件 |
 | 网络 | `http`（multipart 上传） |
+| 蓝牙 | `flutter_blue_plus`（扫描 / 连接 / GATT 服务列表） |
 | 后端 | Node.js ≥ 22，Express，SQLite |
 | 转写 | 阿里云百炼 `qwen3-asr-flash`（同步 HTTP + Base64） |
 | 摘要 | 阿里云百炼 `qwen-plus`（文本生成 HTTP） |
@@ -50,10 +51,10 @@ flutter build apk --debug --split-per-abi
 ```text
 EchoNote/
 ├── lib/                      Flutter 客户端（打包运行用这个）
-│   ├── features/             启动页、录音、列表、详情、播放条
+│   ├── features/             启动页、底栏、录音、列表、详情、播放条、设备页
 │   ├── repositories/         协调文件、数据库、HTTP
 │   ├── data/                 SQLite、转写 API
-│   └── services/             录音、播放、轮询
+│   └── services/             录音、播放、轮询、BLE 扫描连接
 ├── server/                   Node 后端源码（展示与对照，体验 App 不必本地启动）
 │   ├── src/                  路由、任务管线、百炼调用
 │   ├── .env.example          环境变量模板
@@ -62,7 +63,7 @@ EchoNote/
 └── README.md
 ```
 
-页面不直接访问 SQLite、本地文件或 HTTP，一律走 `RecordingRepository`。
+录音相关页面不直接访问 SQLite、本地文件或 HTTP，一律走 `RecordingRepository`。设备页走 `BleController` / `BleScanner`，不直接调用 `flutter_blue_plus`。
 
 ## 处理状态
 
@@ -137,6 +138,7 @@ cd server && npm test
 - 摘要用任意 LLM 即可，这里和转写共用一把百炼 Key
 - 客户端五个主状态对齐产品口径；「生成摘要中」是处理中的子阶段
 - 查询失败保持处理中，避免把还在跑的任务误判失败
+- 设备页只做扫描、连接和列出 GATT 服务；一次扫描约 15 秒，避免列表跟着信号强度不停跳动
 
 ## 已知问题
 
@@ -145,5 +147,20 @@ cd server && npm test
 - Debug 包体积较大（含调试信息）；正式分发应使用 release + HTTPS
 - 超长录音受百炼 Base64 体积限制，P0 未做分段上传
 - 任务音频文件暂不自动清理
-- 未做 BLE 扫描 / 连接 / GATT 服务列表（如 flutter_blue_plus）
 - 未做边录边流转写与实时摘要（录音结束后再上传、整段转写再摘要）
+- BLE 不读写特征值、不配对、不保活；扫完后列表会停住，要再更新需再点扫描
+- 关闭定位后，部分 Android 设备扫不到 BLE
+
+## 设备页
+
+对应加分项（选做）：增加设备页，用 `flutter_blue_plus` 扫描周边 BLE 设备，展示名称 / RSSI，能连接任一设备并读取其 GATT 服务列表；可用另一台手机或 nRF Connect 模拟外设。核心录音、转写链路未为此让路。
+
+底栏第二项即该页。扫描结果列出广播名和信号强度；点任意一行会连接该设备，并展示 GATT 服务 UUID。另一台手机打开 nRF Connect Advertiser 即可当作外设来验收。不读写特征值、不配对。
+
+**核心实现**
+
+- 协议：BLE + GATT。本机扫周边广播、连接后 `discoverServices` 列出服务 UUID。
+- 库：`flutter_blue_plus`。扫描用 `startScan` / `onScanResults`（名称、`rssi`）；连接用 `connect`，读服务用 `discoverServices`。
+- 结构：页面只走 `BleController` → `BleScanner`，不直接调插件。
+- 系统：Android 12+ 申请 `BLUETOOTH_SCAN`、`BLUETOOTH_CONNECT`；扫描 BLE 还需要定位权限。
+- 一次扫描约 15 秒；连接前先停扫，离开详情页 `disconnect`。

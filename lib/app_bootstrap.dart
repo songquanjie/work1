@@ -6,10 +6,12 @@ import 'app.dart';
 import 'core/config/app_config.dart';
 import 'data/local/recording_database.dart';
 import 'data/remote/transcription_api.dart';
+import 'features/ble/ble_controller.dart';
+import 'features/home/home_shell.dart';
 import 'features/launch/echo_note_launch_page.dart';
 import 'features/recorder/recorder_controller.dart';
-import 'features/recording_list/recording_list_page.dart';
 import 'repositories/recording_repository.dart';
+import 'services/flutter_blue_plus_ble_scanner.dart';
 import 'services/player_service.dart';
 import 'services/recorder_service.dart';
 import 'services/recording_file_store.dart';
@@ -31,6 +33,7 @@ class _EchoNoteBootstrapState extends State<EchoNoteBootstrap> {
   late final PlayerService _player;
   late final RecordingRepository _repository;
   late final RecorderController _recorder;
+  late final BleController _ble;
   bool _ready = false;
   bool _booting = false;
   bool _disposed = false;
@@ -51,6 +54,7 @@ class _EchoNoteBootstrapState extends State<EchoNoteBootstrap> {
       recorder: RecorderService(),
       repository: _repository,
     );
+    _ble = BleController(scanner: FlutterBluePlusBleScanner());
     unawaited(_boot());
   }
 
@@ -98,6 +102,7 @@ class _EchoNoteBootstrapState extends State<EchoNoteBootstrap> {
   @override
   void dispose() {
     _disposed = true;
+    _ble.dispose();
     _recorder.dispose();
     _player.dispose();
     _repository.dispose();
@@ -110,6 +115,7 @@ class _EchoNoteBootstrapState extends State<EchoNoteBootstrap> {
       repository: _repository,
       player: _player,
       recorderController: _recorder,
+      bleController: _ble,
       pollingEnabled: _ready,
       child: MaterialApp(
         title: '随身录音笔记',
@@ -119,7 +125,7 @@ class _EchoNoteBootstrapState extends State<EchoNoteBootstrap> {
           useMaterial3: true,
         ),
         home: _ready
-            ? const RecordingListPage()
+            ? const HomeShell()
             : EchoNoteLaunchPage(
                 errorMessage: _error,
                 onRetry: _error == null ? null : () => unawaited(_boot()),

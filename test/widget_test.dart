@@ -1,5 +1,7 @@
 import 'package:echonote/app.dart';
 import 'package:echonote/data/local/recording_database.dart';
+import 'package:echonote/features/ble/ble_controller.dart';
+import 'package:echonote/features/home/home_shell.dart';
 import 'package:echonote/features/launch/echo_note_launch_page.dart';
 import 'package:echonote/features/recorder/recorder_controller.dart';
 import 'package:echonote/features/recording_detail/recording_detail_page.dart';
@@ -12,6 +14,8 @@ import 'package:echonote/services/recording_file_store.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:provider/provider.dart';
+
+import 'fake_ble_scanner.dart';
 
 class _MemoryStore implements RecordingStore {
   @override
@@ -54,6 +58,7 @@ Widget _appTree({
   required RecordingRepository repository,
   required PlayerService player,
   required RecorderController recorder,
+  required BleController ble,
   required Widget home,
   GlobalKey<NavigatorState>? navigatorKey,
 }) {
@@ -61,6 +66,8 @@ Widget _appTree({
     repository: repository,
     player: player,
     recorderController: recorder,
+    bleController: ble,
+    pollingEnabled: false,
     child: MaterialApp(
       navigatorKey: navigatorKey,
       home: home,
@@ -68,7 +75,8 @@ Widget _appTree({
   );
 }
 
-(RecordingRepository, PlayerService, RecorderController) _services() {
+(RecordingRepository, PlayerService, RecorderController, BleController)
+    _services() {
   final RecordingRepository repository = RecordingRepository(
     database: _MemoryStore(),
     files: RecordingFileStore(),
@@ -79,10 +87,15 @@ Widget _appTree({
     recorder: RecorderService(),
     repository: repository,
   );
+  final BleController ble = BleController(
+    scanner: FakeBleScanner(),
+    permissions: FakeBlePermissionGate(),
+  );
   addTearDown(repository.dispose);
   addTearDown(player.dispose);
   addTearDown(recorder.dispose);
-  return (repository, player, recorder);
+  addTearDown(ble.dispose);
+  return (repository, player, recorder, ble);
 }
 
 void main() {
@@ -145,7 +158,7 @@ void main() {
     WidgetTester tester,
   ) async {
     final (RecordingRepository repository, PlayerService player,
-            RecorderController recorder) =
+            RecorderController recorder, BleController ble) =
         _services();
 
     await tester.pumpWidget(
@@ -153,19 +166,23 @@ void main() {
         repository: repository,
         player: player,
         recorder: recorder,
-        home: const RecordingListPage(),
+        ble: ble,
+        home: const HomeShell(),
       ),
     );
 
     expect(find.byType(MaterialApp), findsOneWidget);
+    expect(find.byType(HomeShell), findsOneWidget);
     expect(find.byType(RecordingListPage), findsOneWidget);
+    expect(find.text('笔记'), findsOneWidget);
+    expect(find.text('设备'), findsOneWidget);
   });
 
   testWidgets('pushed detail page can read RecordingRepository', (
     WidgetTester tester,
   ) async {
     final (RecordingRepository repository, PlayerService player,
-            RecorderController recorder) =
+            RecorderController recorder, BleController ble) =
         _services();
     final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
@@ -174,6 +191,7 @@ void main() {
         repository: repository,
         player: player,
         recorder: recorder,
+        ble: ble,
         navigatorKey: navigatorKey,
         home: const RecordingListPage(),
       ),
@@ -194,7 +212,7 @@ void main() {
     WidgetTester tester,
   ) async {
     final (RecordingRepository repository, PlayerService player,
-            RecorderController recorder) =
+            RecorderController recorder, BleController ble) =
         _services();
     final Recording recording = _sampleRecording();
     repository.recordings = <Recording>[recording];
@@ -204,6 +222,7 @@ void main() {
         repository: repository,
         player: player,
         recorder: recorder,
+        ble: ble,
         home: RecordingDetailPage(recordingId: recording.id),
       ),
     );
