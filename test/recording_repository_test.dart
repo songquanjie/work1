@@ -557,4 +557,27 @@ void main() {
       isTrue,
     );
   });
+
+  test('rename updates display name and keeps the audio file name', () async {
+    final Directory dir = await Directory.systemTemp.createTemp('echonote_rn_');
+    addTearDown(() async {
+      if (await dir.exists()) {
+        await dir.delete(recursive: true);
+      }
+    });
+    final RecordingRepository repo = RecordingRepository(
+      database: _MemoryStore(),
+      files: RecordingFileStore(),
+      playback: _SilentPlayback(),
+    );
+    addTearDown(repo.dispose);
+    final Recording saved = await _persistSample(repo, dir);
+
+    await repo.rename(saved.id, '  周会纪要  ');
+
+    expect(repo.recordings.single.name, '周会纪要');
+    expect(repo.recordings.single.fileName, saved.fileName);
+    expect(repo.recordings.single.localPath, saved.localPath);
+    await expectLater(repo.rename(saved.id, '   '), throwsA(isA<AppError>()));
+  });
 }

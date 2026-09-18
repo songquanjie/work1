@@ -34,6 +34,9 @@ class RecordingRepository extends ChangeNotifier {
     );
   }
 
+  /// 展示名上限。不改 fileName，中文名不会影响上传文件名。
+  static const int maxDisplayNameLength = 40;
+
   final RecordingStore _database;
   final RecordingFileStore _files;
   final RecordingPlayback _playback;
@@ -325,6 +328,21 @@ class RecordingRepository extends ChangeNotifier {
     }
     await _database.delete(id);
     await load(recoverInterrupted: false);
+  }
+
+  /// 只改 SQLite 里的展示名。上传仍用 [Recording.fileName] 和本地路径。
+  Future<void> rename(String id, String rawName) async {
+    final String name = rawName.trim();
+    if (name.isEmpty) {
+      throw const AppError(code: 'INVALID_NAME', message: '名称不能为空。');
+    }
+    if (name.length > maxDisplayNameLength) {
+      throw const AppError(code: 'INVALID_NAME', message: '名称最多 40 个字。');
+    }
+    final Recording current = await _require(id);
+    await _persist(
+      current.copyWith(name: name, updatedAt: DateTime.now()),
+    );
   }
 
   Future<void> _persist(Recording next) async {

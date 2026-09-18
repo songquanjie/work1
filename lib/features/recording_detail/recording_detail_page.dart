@@ -9,8 +9,10 @@ import '../../core/utils/time_format.dart';
 import '../../models/processing_status.dart';
 import '../../models/recording.dart';
 import '../../repositories/recording_repository.dart';
+import '../playback/recording_playback_bar.dart';
+import '../recording_list/rename_recording_dialog.dart';
 
-/// 看转写全文和摘要。摘要失败只重试 LLM，不会重新传音频。
+/// 看转写全文和摘要，并支持试听。摘要失败只重试 LLM，不会重新传音频。
 class RecordingDetailPage extends StatelessWidget {
   const RecordingDetailPage({super.key, required this.recordingId});
 
@@ -74,7 +76,26 @@ class RecordingDetailPage extends StatelessWidget {
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: <Widget>[
-          Text(recording.name, style: Theme.of(context).textTheme.titleLarge),
+          Row(
+            children: <Widget>[
+              Expanded(
+                child: Text(
+                  recording.name,
+                  style: Theme.of(context).textTheme.titleLarge,
+                ),
+              ),
+              IconButton(
+                tooltip: '重命名',
+                onPressed: () => unawaited(
+                  showRenameRecordingDialog(
+                    context: context,
+                    recording: recording,
+                  ),
+                ),
+                icon: const Icon(Icons.edit_outlined),
+              ),
+            ],
+          ),
           const SizedBox(height: 8),
           Text(
             '${formatDurationMs(recording.durationMs)}  ·  ${formatCreatedAt(recording.createdAt)}',
@@ -88,6 +109,14 @@ class RecordingDetailPage extends StatelessWidget {
             const SizedBox(height: 8),
             const Text('本地文件缺失，无法播放或重新上传。'),
           ],
+          const SizedBox(height: 12),
+          RecordingPlaybackBar(
+            recordingId: recording.id,
+            path: recording.localPath,
+            durationMs: recording.durationMs,
+            canPlay: recording.canPlay,
+            progressKey: const Key('detail_playback_progress'),
+          ),
           if (recording.status == ProcessingStatus.failed &&
               (recording.errorMessage ?? '').isNotEmpty) ...<Widget>[
             const SizedBox(height: 12),
@@ -100,7 +129,9 @@ class RecordingDetailPage extends StatelessWidget {
             FilledButton(
               onPressed: busy || recording.fileMissing
                   ? null
-                  : () => unawaited(_guard(context, () => repo.upload(recording.id))),
+                  : () => unawaited(
+                        _guard(context, () => repo.upload(recording.id)),
+                      ),
               child: const Text('上传并转写'),
             ),
           ],
@@ -110,7 +141,9 @@ class RecordingDetailPage extends StatelessWidget {
             FilledButton(
               onPressed: busy
                   ? null
-                  : () => unawaited(_guard(context, () => repo.retry(recording.id))),
+                  : () => unawaited(
+                        _guard(context, () => repo.retry(recording.id)),
+                      ),
               child: Text(
                 recording.failedStage == 'summarizing' ? '重新生成摘要' : '重试处理',
               ),

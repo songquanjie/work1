@@ -4,22 +4,29 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import 'features/recorder/recorder_controller.dart';
-import 'features/recording_list/recording_list_page.dart';
 import 'repositories/recording_repository.dart';
 import 'services/player_service.dart';
 
-/// 根组件：注入仓库/播放器，并按前后台启停轮询。
+/// 注入仓库/播放器，并按前后台启停轮询。
+///
+/// 必须包在 [MaterialApp] **外面**。不要放进 `MaterialApp.builder`，
+/// 否则详情路由、重命名弹窗弹出时会把 InheritedWidget 拆坏。
+/// 传入的服务由创建方 dispose。这里只停轮询、移除前后台观察者。
 class EchoNoteApp extends StatefulWidget {
   const EchoNoteApp({
     super.key,
     required this.repository,
     required this.player,
     required this.recorderController,
+    required this.child,
+    this.pollingEnabled = true,
   });
 
   final RecordingRepository repository;
   final PlayerService player;
   final RecorderController recorderController;
+  final Widget child;
+  final bool pollingEnabled;
 
   @override
   State<EchoNoteApp> createState() => _EchoNoteAppState();
@@ -30,7 +37,20 @@ class _EchoNoteAppState extends State<EchoNoteApp> with WidgetsBindingObserver {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
-    // 前台才轮询，避免后台一直打转写查询。
+    if (widget.pollingEnabled) {
+      _startPolling();
+    }
+  }
+
+  @override
+  void didUpdateWidget(covariant EchoNoteApp oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.pollingEnabled && !oldWidget.pollingEnabled) {
+      _startPolling();
+    }
+  }
+
+  void _startPolling() {
     widget.repository.poller?.start();
     final Future<void>? firstRefresh = widget.repository.poller?.refresh();
     if (firstRefresh != null) {
@@ -55,10 +75,8 @@ class _EchoNoteAppState extends State<EchoNoteApp> with WidgetsBindingObserver {
 
   @override
   void dispose() {
+    widget.repository.poller?.stop();
     WidgetsBinding.instance.removeObserver(this);
-    widget.recorderController.dispose();
-    widget.player.dispose();
-    widget.repository.dispose();
     super.dispose();
   }
 
@@ -74,15 +92,7 @@ class _EchoNoteAppState extends State<EchoNoteApp> with WidgetsBindingObserver {
           value: widget.recorderController,
         ),
       ],
-      child: MaterialApp(
-        title: '随身录音笔记',
-        debugShowCheckedModeBanner: false,
-        theme: ThemeData(
-          colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF1565C0)),
-          useMaterial3: true,
-        ),
-        home: const RecordingListPage(),
-      ),
+      child: widget.child,
     );
   }
 }

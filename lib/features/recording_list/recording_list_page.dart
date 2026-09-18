@@ -10,11 +10,13 @@ import '../../models/recording.dart';
 import '../../repositories/recording_repository.dart';
 import '../../services/playback_policy.dart';
 import '../../services/player_service.dart';
+import '../playback/playback_progress_slider.dart';
 import '../recorder/recorder_controller.dart';
 import '../recorder/recorder_page.dart';
 import '../recording_detail/recording_detail_page.dart';
+import 'rename_recording_dialog.dart';
 
-/// 首页：列表、播放、上传入口。点一行进详情。
+/// 首页：列表、播放、上传入口。点一行进详情，长按改展示名。
 class RecordingListPage extends StatelessWidget {
   const RecordingListPage({super.key});
 
@@ -148,6 +150,12 @@ class RecordingListPage extends StatelessWidget {
                               )
                           : null,
                       onOpenDetail: () => _openDetail(context, item.id),
+                      onRename: () => unawaited(
+                        showRenameRecordingDialog(
+                          context: context,
+                          recording: item,
+                        ),
+                      ),
                     );
                   },
                 ),
@@ -174,6 +182,7 @@ class RecordingListTile extends StatelessWidget {
     this.onDelete,
     this.onUpload,
     this.onOpenDetail,
+    this.onRename,
   });
 
   final Recording recording;
@@ -187,6 +196,7 @@ class RecordingListTile extends StatelessWidget {
   final VoidCallback? onDelete;
   final VoidCallback? onUpload;
   final VoidCallback? onOpenDetail;
+  final VoidCallback? onRename;
 
   @override
   Widget build(BuildContext context) {
@@ -214,6 +224,7 @@ class RecordingListTile extends StatelessWidget {
               overflow: TextOverflow.ellipsis,
             ),
             onTap: onOpenDetail,
+            onLongPress: onRename,
             leading: IconButton(
               tooltip: label,
               onPressed: recording.canPlay ? onPlayPause : null,
@@ -257,7 +268,8 @@ class RecordingListTile extends StatelessWidget {
                     style: Theme.of(context).textTheme.bodySmall,
                   ),
                   Expanded(
-                    child: _ProgressSlider(
+                    child: PlaybackProgressSlider(
+                      key: const Key('playback_progress'),
                       position: position,
                       duration: duration,
                       enabled: recording.canPlay,
@@ -273,50 +285,6 @@ class RecordingListTile extends StatelessWidget {
             ),
         ],
       ),
-    );
-  }
-}
-
-class _ProgressSlider extends StatefulWidget {
-  const _ProgressSlider({
-    required this.position,
-    required this.duration,
-    required this.enabled,
-    required this.onSeek,
-  });
-
-  final Duration position;
-  final Duration duration;
-  final bool enabled;
-  final ValueChanged<Duration> onSeek;
-
-  @override
-  State<_ProgressSlider> createState() => _ProgressSliderState();
-}
-
-class _ProgressSliderState extends State<_ProgressSlider> {
-  double? _dragging;
-
-  @override
-  Widget build(BuildContext context) {
-    final double max = widget.duration.inMilliseconds <= 0
-        ? 1
-        : widget.duration.inMilliseconds.toDouble();
-    final double value =
-        (_dragging ?? widget.position.inMilliseconds.toDouble()).clamp(0, max);
-    return Slider(
-      key: const Key('playback_progress'),
-      value: value,
-      max: max,
-      onChanged: widget.enabled
-          ? (double next) => setState(() => _dragging = next)
-          : null,
-      onChangeEnd: widget.enabled
-          ? (double next) {
-              setState(() => _dragging = null);
-              widget.onSeek(Duration(milliseconds: next.round()));
-            }
-          : null,
     );
   }
 }

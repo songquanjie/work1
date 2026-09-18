@@ -19,7 +19,7 @@ String formatDurationMs(int durationMs) {
   return formatClock(Duration(milliseconds: safe));
 }
 
-/// 作业要求的录音名：`录音 YYYY-MM-DD HH:mm`，P0 不提供重命名。
+/// 默认录音名：`录音 YYYY-MM-DD HH:mm`。展示名可改，磁盘文件名不变。
 String formatRecordingName(DateTime dateTime) {
   return '录音 ${dateTime.year}-${_twoDigits(dateTime.month)}-${_twoDigits(dateTime.day)} '
       '${_twoDigits(dateTime.hour)}:${_twoDigits(dateTime.minute)}';

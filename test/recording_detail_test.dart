@@ -74,12 +74,17 @@ Future<void> _pumpDetail(WidgetTester tester, Recording recording) async {
     playback: _SilentPlayback(),
   );
   repository.recordings = <Recording>[recording];
+  final PlayerService player = PlayerService();
+  addTearDown(player.dispose);
   addTearDown(repository.dispose);
   await tester.pumpWidget(
     ChangeNotifierProvider<RecordingRepository>.value(
       value: repository,
-      child: MaterialApp(
-        home: RecordingDetailPage(recordingId: recording.id),
+      child: ChangeNotifierProvider<PlayerService>.value(
+        value: player,
+        child: MaterialApp(
+          home: RecordingDetailPage(recordingId: recording.id),
+        ),
       ),
     ),
   );
@@ -129,5 +134,13 @@ void main() {
     expect(find.text('转写全文'), findsOneWidget);
     expect(find.text('智能摘要'), findsOneWidget);
     expect(find.text('复制'), findsNWidgets(2));
+  });
+
+  testWidgets('detail page can play and rename', (WidgetTester tester) async {
+    await _pumpDetail(tester, _sample());
+    expect(find.byTooltip('播放'), findsOneWidget);
+    expect(find.byTooltip('重新播放'), findsOneWidget);
+    expect(find.byTooltip('重命名'), findsOneWidget);
+    expect(find.byKey(const Key('detail_playback_progress')), findsOneWidget);
   });
 }

@@ -104,6 +104,9 @@ class RecordingDatabase implements RecordingStore {
   }
 
   Future<void> init() async {
+    if (_db != null) {
+      return;
+    }
     if (_injected != null) {
       _db = _injected;
       return;

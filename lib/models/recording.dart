@@ -57,6 +57,7 @@ class Recording {
 
   /// 可空字段用 [_unset] 哨兵，才能把 transcript / error 真正写成 null。
   Recording copyWith({
+    String? name,
     DateTime? updatedAt,
     ProcessingStatus? status,
     Object? processingStage = _unset,
@@ -73,7 +74,7 @@ class Recording {
   }) {
     return Recording(
       id: id,
-      name: name,
+      name: name ?? this.name,
       fileName: fileName,
       localPath: localPath,
       durationMs: durationMs,
