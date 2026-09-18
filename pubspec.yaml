@@ -1,7 +1,7 @@
 name: echonote
 description: 随身录音笔记 — 本地录音、上传转写与详情。
 publish_to: "none"
-version: 1.5.2+7
+version: 1.5.3+8
 
 environment:
   sdk: ">=3.5.0 <4.0.0"
