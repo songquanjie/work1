@@ -124,6 +124,8 @@ class RecorderController extends ChangeNotifier with WidgetsBindingObserver {
           durationMs: elapsed.inMilliseconds,
         );
         state = RecorderState.idle;
+        _accumulated = Duration.zero;
+        elapsed = Duration.zero;
         volumeLevel = 0;
         errorMessage = null;
       } on AppError catch (error) {
@@ -137,6 +139,23 @@ class RecorderController extends ChangeNotifier with WidgetsBindingObserver {
   }
 
   Future<void> openSettings() => _recorder.openSettings();
+
+  /// 再进「新建录音」时清掉上一段的时长和音量。正在录/保存时不碰。
+  void prepareForNewSession() {
+    if (state == RecorderState.recording ||
+        state == RecorderState.paused ||
+        state == RecorderState.saving) {
+      return;
+    }
+    _ticker?.cancel();
+    _startedAt = null;
+    _accumulated = Duration.zero;
+    elapsed = Duration.zero;
+    volumeLevel = 0;
+    errorMessage = null;
+    state = RecorderState.idle;
+    notifyListeners();
+  }
 
   Future<void> _runExclusive(Future<void> Function() action) async {
     _busy = true;

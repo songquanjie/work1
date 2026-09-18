@@ -63,6 +63,7 @@ class RecordingListPage extends StatelessWidget {
       return;
     }
     final RecorderController controller = context.read<RecorderController>();
+    controller.prepareForNewSession();
     await Navigator.of(context).push(
       MaterialPageRoute<void>(
         builder: (_) => ChangeNotifierProvider<RecorderController>.value(
